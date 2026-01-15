@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Órbitas Interactivo</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        canvas {
+            background-color: #000;
+            border: 1px solid #444;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            max-width: 100%;
+            cursor: default;
+        }
+        .controls {
+            margin-top: 20px;
+            padding: 25px;
+            background-color: #2a2a2a;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 750px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .control-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        label { font-weight: 600; font-size: 1.05em;}
+        input[type=range] { width: 55%; cursor: pointer; accent-color: #00BFFF; }
+        
+        .info-box {
+            text-align: center;
+            margin-top: 15px;
+            padding: 15px;
+            background: #333;
+            border-radius: 8px;
+            border: 1px solid #444;
+            cursor: default;
+        }
+        .info-title { font-size: 1.2em; font-weight: bold; margin-bottom: 5px; display: block;}
+        .info-note { font-size: 0.9em; color: #ccc; }
+        
+        .legend { 
+            font-size: 0.85em; 
+            color: #aaa; 
+            margin-top: 15px; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 5px 15px;
+            text-align: left;
+            padding-top: 10px;
+            border-top: 1px solid #444;
+            cursor: default;
+        }
+        .legend span { display: flex; align-items: center; }
+        .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .line-icon { height: 3px; width: 15px; display: inline-block; margin-right: 5px; transition: background-color 0.3s;}
+
+        /* Estilos de la Tabla */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #ddd;
+        }
+        .data-table th, .data-table td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #444;
+        }
+        .data-table th {
+            color: #00BFFF;
+            font-weight: 600;
+            border-bottom: 2px solid #555;
+        }
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Estilo para los valores clicables sin efectos extra */
+        .highlight-val {
+            font-family: monospace;
+            color: #FFD700;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+        
+        .highlight-row-oumuamua {
+            background-color: rgba(255, 69, 0, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="orbitCanvas" width="800" height="500"></canvas>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="eccentricity">Excentricidad (e): <span id="eValue" style="color:#00BFFF">1.199</span></label>
+            <input type="range" id="eccentricity" min="0" max="2.5" step="0.001" value="1.199">
+        </div>
+        
+        <div class="control-group">
+            <label for="zoom">Zoom:</label>
+            <input type="range" id="zoom" min="30" max="200" value="80">
+        </div>
+
+        <div class="info-box">
+            <span id="statusTitle" class="info-title">Tipo: Hipérbola</span>
+            <span id="statusNote" class="info-note">Trayectoria abierta de escape rápido.</span>
+        </div>
+        
+        <div class="legend">
+            <span><span class="dot" style="background:#FFD700"></span> Sol (Foco)</span>
+            <span><span id="trajIcon" class="line-icon" style="background:#00BFFF"></span> Trayectoria (Órbita)</span>
+            <span><span class="line-icon" style="background:#FF00FF"></span> Directriz (Línea de referencia)</span>
+            <span><span class="line-icon" style="background:#777; border-bottom: 2px dashed #777; height:0;"></span> Asíntotas (Solo si e > 1)</span>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Objeto</th>
+                    <th>Excentricidad</th>
+                    <th>Situación</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>La Tierra</td>
+                    <td class="highlight-val" onclick="setSimValue(0.016)">0.016</td>
+                    <td>Círculo casi perfecto. Atrapada para siempre.</td>
+                </tr>
+                <tr>
+                    <td>Plutón</td>
+                    <td class="highlight-val" onclick="setSimValue(0.244)">0.244</td>
+                    <td>Elipse alargada. Atrapado.</td>
+                </tr>
+                <tr>
+                    <td>Cometa Halley</td>
+                    <td class="highlight-val" onclick="setSimValue(0.967)">0.967</td>
+                    <td>Elipse muy estirada. Se aleja muchísimo, pero regresa.</td>
+                </tr>
+                <tr>
+                    <td>Límite de Escape</td>
+                    <td class="highlight-val" onclick="setSimValue(1.000)">1.000</td>
+                    <td>La frontera (Parábola).</td>
+                </tr>
+                <tr class="highlight-row-oumuamua">
+                    <td>'Oumuamua</td>
+                    <td class="highlight-val" onclick="setSimValue(1.199)">1.199</td>
+                    <td>Hipérbola. Rompió el límite con mucha fuerza.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('orbitCanvas');
+        const ctx = canvas.getContext('2d');
+        const eSlider = document.getElementById('eccentricity');
+        const zSlider = document.getElementById('zoom');
+        const eDisplay = document.getElementById('eValue');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusNote = document.getElementById('statusNote');
+        const trajIcon = document.getElementById('trajIcon'); // Referencia al icono de la leyenda
+
+        let eccentricity = 1.199;
+        let scale = 80; 
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const p = 2; 
+
+        function setSimValue(val) {
+            eccentricity = val;
+            eSlider.value = val;
+            eDisplay.textContent = val.toFixed(3);
+            draw();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+
+            // 1. DIRECTRIZ
+            if (eccentricity > 0.001) { 
+                const directrixDist = (p / eccentricity) * scale;
+                const directrixX = centerX + directrixDist;
+                
+                if (directrixX < canvas.width) {
+                    ctx.beginPath();
+                    ctx.moveTo(directrixX, 0);
+                    ctx.lineTo(directrixX, canvas.height);
+                    ctx.strokeStyle = '#FF00FF'; 
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([]); 
+                    ctx.stroke();
+                }
+            }
+
+            // 2. ASÍNTOTAS
+            let limitAngle = Math.PI;
+            if (eccentricity >= 1.0) {
+                limitAngle = Math.acos(-1 / eccentricity) - 0.05; 
+                if (eccentricity > 1.01) drawAsymptotes(limitAngle);
+            }
+
+            // 3. SOL
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#FFD700';
+            ctx.fill();
+            ctx.shadowBlur = 15; ctx.shadowColor = '#FFD700';
+            ctx.closePath();
+            ctx.shadowBlur = 0;
+
+            // 4. ÓRBITA
+            updateStatusStyle();
+            ctx.beginPath();
+            ctx.lineWidth = 3;
+            ctx.setLineDash([]); 
+
+            let firstPoint = true;
+            for (let theta = -limitAngle; theta <= limitAngle; theta += 0.005) {
+                let r = (p / (1 + eccentricity * Math.cos(theta))) * scale;
+                let x = centerX + r * Math.cos(theta); 
+                let y = centerY + r * Math.sin(theta);
+
+                if (x > canvas.width * 1.5 || y > canvas.height * 1.5 || y < -canvas.height * 0.5) continue;
+
+                if (firstPoint) {
+                    ctx.moveTo(x, y);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        }
+
+        function drawAsymptotes(angle) {
+            ctx.save();
+            ctx.strokeStyle = '#777'; 
+            ctx.setLineDash([8, 6]); 
+            ctx.lineWidth = 1.5;
+            let len = 2000; 
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX + len * Math.cos(angle), centerY + len * Math.sin(angle));
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX + len * Math.cos(-angle), centerY + len * Math.sin(-angle));
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#252525';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for(let i=0; i<canvas.width; i+=40) { ctx.moveTo(i,0); ctx.lineTo(i, canvas.height); }
+            for(let i=0; i<canvas.height; i+=40) { ctx.moveTo(0,i); ctx.lineTo(canvas.width, i); }
+            ctx.stroke();
+        }
+
+        function updateStatusStyle() {
+            let color, title, note;
+            
+            // Lógica de colores actualizada
+            if (eccentricity < 1.0) {
+                color = '#32CD32'; // Verde
+                title = 'Elipse (Órbita Cerrada)'; 
+                note = 'Atrapado por la gravedad. Gira y vuelve.';
+            } else if (Math.abs(eccentricity - 1.0) < 0.001) { 
+                color = '#00BFFF'; // Azul (Deep Sky Blue)
+                title = 'Parábola (e≈1.000)'; 
+                note = 'Velocidad de escape exacta.';
+            } else {
+                color = '#FF4500'; // Rojo
+                title = 'Hipérbola (Interestelar)'; 
+                note = 'Exceso de velocidad. Se abre siguiendo las asíntotas grises.';
+            }
+
+            // Aplicar colores al Canvas y al Texto
+            ctx.strokeStyle = color;
+            eDisplay.style.color = color;
+            statusTitle.textContent = "Tipo: " + title;
+            statusNote.textContent = note;
+            
+            // Aplicar color a la leyenda (Icono)
+            trajIcon.style.backgroundColor = color;
+        }
+
+        eSlider.addEventListener('input', (e) => {
+            eccentricity = parseFloat(e.target.value);
+            eDisplay.textContent = eccentricity.toFixed(3); 
+            draw();
+        });
+        zSlider.addEventListener('input', (e) => {
+            scale = parseFloat(e.target.value);
+            draw();
+        });
+
+        draw(); 
+    </script>
+</body>
+</html>
