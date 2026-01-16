@@ -117,7 +117,7 @@
 
     <div class="controls">
         <div class="control-group">
-            <label for="eccentricity">Excentricidad (e): <span id="eValue" style="color:#00BFFF">1.199</span></label>
+            <label for="eccentricity">Excentricidad: <span id="eValue" style="color:#00BFFF">1.199</span></label>
             <input type="range" id="eccentricity" min="0" max="2.5" step="0.001" value="1.199">
         </div>
         
@@ -295,7 +295,7 @@
                 color = '#32CD32'; // Verde
                 title = 'Elipse (Órbita Cerrada)'; 
                 note = 'Atrapado por la gravedad. Gira y vuelve.';
-            } else if (Math.abs(eccentricity - 1.0) < 0.001) { 
+            } else if (Math.abs(eccentricity - 1.0) < 0.002) { 
                 color = '#00BFFF'; // Azul (Deep Sky Blue)
                 title = 'Parábola (e≈1.000)'; 
                 note = 'Velocidad de escape exacta.';
