@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeorCaso</title>
+  <link rel="stylesheet" href="colors.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="site-shell">
+    <header class="sticky-header" data-sticky-header>
+      <div class="container">
+        <div class="sticky-header__bar">
+          <a class="sticky-header__title" href="#top">PeorCaso</a>
+
+          <nav class="sticky-header__nav" aria-label="Sticky navigation">
+            <a class="menu-link" href="#latest">Latest videos</a>
+            <a class="menu-link" href="#series">Series archive</a>
+            <a class="menu-link" href="#clips">Short clips</a>
+            <a class="menu-link" href="#about">About the channel</a>
+            <a class="menu-link" href="#community">Community posts</a>
+            <a class="menu-link" href="#contact">Contact</a>
+          </nav>
+
+          <div class="sticky-header__actions">
+            <button class="button button-secondary button-compact" type="button" aria-label="Search">
+              Search
+            </button>
+
+            <div class="more-menu" data-more-menu>
+              <button
+                class="button button-secondary button-compact"
+                type="button"
+                aria-expanded="false"
+                aria-controls="more-menu-panel"
+                data-more-toggle
+              >
+                More
+              </button>
+
+              <div class="more-menu__panel" id="more-menu-panel" hidden>
+                <a class="menu-link" href="#latest">Latest videos</a>
+                <a class="menu-link" href="#series">Series archive</a>
+                <a class="menu-link" href="#clips">Short clips</a>
+                <a class="menu-link" href="#about">About the channel</a>
+                <a class="menu-link" href="#community">Community posts</a>
+                <a class="menu-link" href="#contact">Contact</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <header class="site-header">
+      <div class="container" id="top">
+        <section class="hero" aria-label="Featured video">
+          <div class="hero__logo">
+            <img src="assets/images/PeorCaso_logo.png" alt="PeorCaso">
+          </div>
+
+          <div class="hero__media">
+            <div class="media-frame">
+              <iframe
+                src="https://www.youtube.com/embed/ScMzIvxBSi4?rel=0"
+                title="Latest YouTube video placeholder"
+                loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
+            </div>
+          </div>
+        </section>
+      </div>
+    </header>
+
+    <main>
+      <section class="section">
+        <div class="container">
+          <nav class="button-row" aria-label="Primary links">
+            <a class="button button-primary" href="#latest">Latest videos</a>
+            <a class="button button-secondary" href="#series">Series archive</a>
+            <a class="button button-secondary" href="#clips">Short clips</a>
+            <a class="button button-secondary" href="#about">About the channel</a>
+            <a class="button button-secondary" href="#community">Community posts</a>
+            <a class="button button-secondary" href="#contact">Contact</a>
+          </nav>
+        </div>
+      </section>
+
+      <section class="section" id="latest" aria-labelledby="grid-title">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Featured content</p>
+              <h2 id="grid-title">Content cards</h2>
+            </div>
+            <p class="section-heading__text">
+              Placeholder cards use one shared component and expand in row-based batches.
+            </p>
+          </div>
+
+          <div class="card-grid" data-card-grid>
+            <article class="card content-card" id="series">
+              <p class="content-card__tag">Series</p>
+              <h3>Case Study Breakdown</h3>
+              <p>Long-form analysis format with room for thumbnail, summary, and metadata.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Upload</p>
+              <h3>Latest Premiere Slot</h3>
+              <p>Reserved space for the most recent full episode or scheduled release.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Clip</p>
+              <h3>Best Moment Recap</h3>
+              <p>Compact highlight card for short edits, reactions, or commentary snippets.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Community</p>
+              <h3>Audience Poll Prompt</h3>
+              <p>Flexible block for community prompts, voting links, or next-topic ideas.</p>
+            </article>
+            <article class="card content-card" id="clips">
+              <p class="content-card__tag">Playlist</p>
+              <h3>New Viewer Starter Pack</h3>
+              <p>Introductory collection meant to guide first-time visitors through the channel.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Feature</p>
+              <h3>Deep Dive Collection</h3>
+              <p>Structured card for themed sets, background research, and linked episodes.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Update</p>
+              <h3>Production Notes</h3>
+              <p>Short status area for schedule updates, release notes, or behind-the-scenes items.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Bonus</p>
+              <h3>Subscriber Extra</h3>
+              <p>Callout card for bonus streams, members-only extras, or preview material.</p>
+            </article>
+            <article class="card content-card" id="about">
+              <p class="content-card__tag">Profile</p>
+              <h3>Channel Overview</h3>
+              <p>Reusable summary block for mission, tone, and the main promise of the homepage.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Archive</p>
+              <h3>Season Roundup</h3>
+              <p>High-level entry point for older collections grouped by time, format, or topic.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Live</p>
+              <h3>Stream Replay Shelf</h3>
+              <p>Dedicated placeholder for livestream replays or special event sessions.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Guide</p>
+              <h3>Recommended Watch Order</h3>
+              <p>Helpful orientation card that directs visitors to the right series first.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Highlight</p>
+              <h3>Trending Episode</h3>
+              <p>Spotlight block for the current standout video across social and channel traffic.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Topic</p>
+              <h3>Current Focus Theme</h3>
+              <p>Flexible card for the dominant subject, investigation, or ongoing storyline.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Preview</p>
+              <h3>Next Release Window</h3>
+              <p>Future-facing slot for teasers, launch dates, and pending announcements.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Collection</p>
+              <h3>Evergreen Favorites</h3>
+              <p>Persistent shelf for high-performing pieces visitors should not miss.</p>
+            </article>
+            <article class="card content-card" id="community">
+              <p class="content-card__tag">Feedback</p>
+              <h3>Viewer Suggestions</h3>
+              <p>Community-driven ideas panel with space for prompts and audience requests.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Format</p>
+              <h3>Mini Episode Lane</h3>
+              <p>Secondary format card sized consistently with the main grid component system.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Behind the scenes</p>
+              <h3>Research Notes</h3>
+              <p>Placeholder surface for production context, source lists, or editorial process.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Library</p>
+              <h3>Complete Topic Index</h3>
+              <p>Content directory entry point for categories, tags, and long-tail discovery.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Special</p>
+              <h3>Collaboration Feature</h3>
+              <p>Reusable card reserved for guest appearances, interviews, or crossovers.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Resource</p>
+              <h3>Supporting Links</h3>
+              <p>Simple destination for reference links, newsletters, or external companion pages.</p>
+            </article>
+            <article class="card content-card">
+              <p class="content-card__tag">Ranking</p>
+              <h3>Most Watched This Month</h3>
+              <p>Performance-oriented card for surfacing momentum and recent audience interest.</p>
+            </article>
+            <article class="card content-card" id="contact">
+              <p class="content-card__tag">Contact</p>
+              <h3>Business Inquiries</h3>
+              <p>Footer-adjacent support card for partnerships, press, or general outreach.</p>
+            </article>
+          </div>
+
+          <div class="grid-actions">
+            <button class="button button-secondary" type="button" data-see-more>
+              See more
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-layout">
+        <p>PeorCaso</p>
+        <p>Standard footer placeholder for links, credits, and legal details.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      const grid = document.querySelector("[data-card-grid]");
+      const button = document.querySelector("[data-see-more]");
+      const stickyHeader = document.querySelector("[data-sticky-header]");
+      const buttonRow = document.querySelector(".button-row");
+      const hero = document.querySelector(".hero");
+      const moreMenu = document.querySelector("[data-more-menu]");
+      const moreToggle = document.querySelector("[data-more-toggle]");
+      const morePanel = document.getElementById("more-menu-panel");
+
+      if (!grid || !button) {
+        return;
+      }
+
+      const cards = Array.from(grid.children);
+      const rows = {
+        initial: 4,
+        increment: 2
+      };
+      let visibleRows = rows.initial;
+
+      function getColumns() {
+        if (window.innerWidth <= 610) {
+          return 1;
+        }
+
+        if (window.innerWidth <= 910) {
+          return 2;
+        }
+
+        return 3;
+      }
+
+      function updateGrid() {
+        const visibleCount = visibleRows * getColumns();
+
+        cards.forEach(function (card, index) {
+          card.hidden = index >= visibleCount;
+        });
+
+        button.hidden = visibleCount >= cards.length;
+      }
+
+      button.addEventListener("click", function () {
+        visibleRows += rows.increment;
+        updateGrid();
+      });
+
+      function setHeaderVisibility(isVisible) {
+        if (!stickyHeader) {
+          return;
+        }
+
+        stickyHeader.classList.toggle("is-visible", isVisible);
+
+        if (hero) {
+          hero.classList.toggle("is-hidden", isVisible && window.innerWidth <= 910);
+        }
+      }
+
+      function closeMoreMenu() {
+        if (!moreToggle || !morePanel) {
+          return;
+        }
+
+        moreToggle.setAttribute("aria-expanded", "false");
+        morePanel.hidden = true;
+      }
+
+      if (buttonRow && stickyHeader && "IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            setHeaderVisibility(!entry.isIntersecting);
+          });
+        }, {
+          threshold: 0
+        });
+
+        observer.observe(buttonRow);
+      } else if (stickyHeader && buttonRow) {
+        function updateStickyFallback() {
+          const rowBottom = buttonRow.getBoundingClientRect().bottom;
+          setHeaderVisibility(rowBottom <= 56);
+        }
+
+        window.addEventListener("scroll", updateStickyFallback, { passive: true });
+        updateStickyFallback();
+      }
+
+      if (moreToggle && morePanel) {
+        moreToggle.addEventListener("click", function () {
+          const isExpanded = moreToggle.getAttribute("aria-expanded") === "true";
+          moreToggle.setAttribute("aria-expanded", String(!isExpanded));
+          morePanel.hidden = isExpanded;
+        });
+
+        document.addEventListener("click", function (event) {
+          if (moreMenu && !moreMenu.contains(event.target)) {
+            closeMoreMenu();
+          }
+        });
+
+        morePanel.querySelectorAll("a").forEach(function (link) {
+          link.addEventListener("click", closeMoreMenu);
+        });
+      }
+
+      window.addEventListener("resize", closeMoreMenu);
+      window.addEventListener("resize", updateGrid);
+      updateGrid();
+    }());
+  </script>
+</body>
+</html>
