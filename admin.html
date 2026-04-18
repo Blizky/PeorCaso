@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeorCaso Admin</title>
+  <link rel="stylesheet" href="colors.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <header class="admin-header card">
+      <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Editorial workspace</h1>
+        <p>Level 1 manages users, level 2 approves and edits articles, and level 3 submits posts for review.</p>
+      </div>
+
+      <div class="auth-stack">
+        <form class="auth-form" data-login-form hidden>
+          <label class="admin-field">
+            <span>Email</span>
+            <input type="email" placeholder="name@peorcaso.com" data-login-email>
+          </label>
+          <label class="admin-field">
+            <span>Password</span>
+            <input type="password" placeholder="Password" data-login-password>
+          </label>
+          <div class="auth-actions">
+            <button class="button button-primary" type="submit">Log in</button>
+          </div>
+        </form>
+
+        <form class="auth-form" data-setup-form hidden>
+          <label class="admin-field">
+            <span>Name</span>
+            <input type="text" placeholder="Your name" data-setup-name>
+          </label>
+          <label class="admin-field">
+            <span>Email</span>
+            <input type="email" placeholder="me@peorcaso.com" data-setup-email>
+          </label>
+          <label class="admin-field">
+            <span>Password</span>
+            <input type="password" placeholder="Create a password" data-setup-password>
+          </label>
+          <div class="auth-actions">
+            <button class="button button-primary" type="submit">Create first admin</button>
+          </div>
+        </form>
+
+        <section class="session-card" data-session-card hidden>
+          <p class="session-card__meta" data-session-user></p>
+          <div class="auth-actions">
+            <button class="button button-secondary" type="button" data-logout-button>Log out</button>
+          </div>
+        </section>
+      </div>
+    </header>
+
+    <p class="admin-status" data-status aria-live="polite">Checking session…</p>
+
+    <main class="admin-grid" data-admin-app hidden>
+      <section class="admin-panel card">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Account</p>
+            <h2>Your account</h2>
+          </div>
+        </div>
+
+        <div class="account-layout">
+          <form class="admin-form" data-account-form>
+            <label class="admin-field">
+              <span>Name</span>
+              <input type="text" data-account-name>
+            </label>
+            <label class="admin-field">
+              <span>Email</span>
+              <input type="email" data-account-email>
+            </label>
+            <div class="form-actions">
+              <button class="button button-primary" type="submit">Save account</button>
+            </div>
+          </form>
+
+          <form class="admin-form" data-account-password-form>
+            <label class="admin-field">
+              <span>Current password</span>
+              <input type="password" data-account-current-password>
+            </label>
+            <label class="admin-field">
+              <span>New password</span>
+              <input type="password" data-account-next-password>
+            </label>
+            <div class="form-actions">
+              <button class="button button-secondary" type="submit">Change password</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="admin-panel card" data-user-panel hidden>
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Users</p>
+            <h2>User manager</h2>
+          </div>
+          <button class="button button-secondary" type="button" data-user-reset>New user</button>
+        </div>
+
+        <div class="account-layout">
+          <form class="admin-form" data-user-form>
+            <input type="hidden" data-user-id>
+
+            <label class="admin-field">
+              <span>Name</span>
+              <input type="text" placeholder="Author name" data-user-name>
+            </label>
+
+            <label class="admin-field">
+              <span>Email</span>
+              <input type="email" placeholder="author@peorcaso.com" data-user-email>
+            </label>
+
+            <label class="admin-field">
+              <span>Access level</span>
+              <select data-user-access-level>
+                <option value="1">1 · Admin</option>
+                <option value="2">2 · Editor / Approver</option>
+                <option value="3">3 · Contributor</option>
+              </select>
+            </label>
+
+            <label class="admin-field">
+              <span>Password</span>
+              <input type="password" placeholder="Required for new users" data-user-password>
+            </label>
+
+            <p class="helper-text">Use the reset password action on an existing user to assign a new password.</p>
+
+            <div class="form-actions">
+              <button class="button button-primary" type="submit">Save user</button>
+            </div>
+          </form>
+
+          <div class="item-list" data-user-list></div>
+        </div>
+      </section>
+
+      <section class="admin-panel card" data-category-panel>
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Categories</p>
+            <h2>Category manager</h2>
+          </div>
+          <button class="button button-secondary" type="button" data-category-reset>New category</button>
+        </div>
+
+        <div class="account-layout">
+          <form class="admin-form" data-category-form>
+            <input type="hidden" data-category-id>
+
+            <label class="admin-field">
+              <span>Name</span>
+              <input type="text" placeholder="Analysis" data-category-name>
+            </label>
+
+            <label class="admin-field">
+              <span>Slug</span>
+              <input type="text" placeholder="analysis" data-category-slug>
+            </label>
+
+            <label class="admin-field">
+              <span>Description</span>
+              <textarea rows="3" placeholder="Short public description" data-category-description></textarea>
+            </label>
+
+            <label class="admin-field">
+              <span>Sort order</span>
+              <input type="number" value="0" data-category-sort-order>
+            </label>
+
+            <div class="form-actions">
+              <button class="button button-primary" type="submit">Save category</button>
+            </div>
+          </form>
+
+          <div class="item-list" data-category-list></div>
+        </div>
+      </section>
+
+      <section class="admin-panel card">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Posts</p>
+            <h2>Article manager</h2>
+          </div>
+          <button class="button button-secondary" type="button" data-post-reset>New article</button>
+        </div>
+
+        <div class="post-layout">
+          <div class="item-list item-list--posts" data-post-list></div>
+
+          <div class="post-editor">
+            <form class="admin-form" data-post-form>
+              <input type="hidden" data-post-id>
+
+              <label class="admin-field">
+                <span>Category</span>
+                <select data-post-category></select>
+              </label>
+
+              <label class="admin-field" data-post-status-field hidden>
+                <span>Status</span>
+                <select data-post-status>
+                  <option value="published">Published</option>
+                  <option value="pending">Pending review</option>
+                </select>
+              </label>
+
+              <p class="helper-text" data-post-status-copy hidden>Your articles are submitted as pending until level 1 or 2 approves them.</p>
+
+              <label class="admin-field">
+                <span>Title</span>
+                <input type="text" placeholder="Article title" data-post-title>
+              </label>
+
+              <label class="admin-field">
+                <span>Slug</span>
+                <input type="text" placeholder="article-title" data-post-slug>
+              </label>
+
+              <label class="admin-field">
+                <span>Date</span>
+                <input type="date" data-post-date>
+              </label>
+
+              <label class="admin-field">
+                <span>Image alt text</span>
+                <input type="text" placeholder="Describe the image" data-post-image-alt>
+              </label>
+
+              <label class="admin-field">
+                <span>Image file</span>
+                <input type="file" accept="image/*" data-post-image-file>
+              </label>
+
+              <label class="admin-field">
+                <span>Image URL</span>
+                <input type="url" placeholder="Uploaded image URL" data-post-image-url>
+              </label>
+
+              <div class="image-preview card" data-image-preview>
+                <p>No image selected.</p>
+              </div>
+
+              <label class="admin-field">
+                <span>Markdown content</span>
+                <textarea rows="16" placeholder="# Headline&#10;&#10;Write the article in markdown." data-post-content></textarea>
+              </label>
+
+              <div class="form-actions">
+                <button class="button button-primary" type="submit">Save article</button>
+              </div>
+            </form>
+
+            <section class="markdown-preview card">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Preview</p>
+                  <h3>Markdown preview</h3>
+                </div>
+              </div>
+              <div class="markdown-preview__body" data-markdown-preview></div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
