@@ -1,5 +1,9 @@
 import { HttpError } from "./http.js";
 
+const PBKDF2_ITERATIONS = 210000;
+const FALLBACK_ITERATIONS = 12000;
+const HASH_SEPARATOR = "$";
+
 function bytesToHex(bytes) {
   return Array.from(bytes).map(function (byte) {
     return byte.toString(16).padStart(2, "0");
@@ -22,7 +26,27 @@ function randomSalt() {
   return bytesToHex(bytes);
 }
 
-async function deriveHash(password, saltHex) {
+function concatBytes() {
+  const segments = Array.from(arguments);
+  const totalLength = segments.reduce(function (sum, bytes) {
+    return sum + bytes.length;
+  }, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+
+  segments.forEach(function (bytes) {
+    result.set(bytes, offset);
+    offset += bytes.length;
+  });
+
+  return result;
+}
+
+async function digestBytes(bytes) {
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+}
+
+async function derivePbkdf2Hash(password, saltHex) {
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -34,10 +58,70 @@ async function deriveHash(password, saltHex) {
     name: "PBKDF2",
     hash: "SHA-256",
     salt: hexToBytes(saltHex),
-    iterations: 210000
+    iterations: PBKDF2_ITERATIONS
   }, keyMaterial, 256);
 
   return bytesToHex(new Uint8Array(bits));
+}
+
+async function deriveFallbackHash(password, saltHex) {
+  const saltBytes = hexToBytes(saltHex);
+  let digest = concatBytes(saltBytes, new TextEncoder().encode(password));
+
+  for (let index = 0; index < FALLBACK_ITERATIONS; index += 1) {
+    digest = await digestBytes(concatBytes(saltBytes, digest));
+  }
+
+  return bytesToHex(digest);
+}
+
+async function deriveHash(password, saltHex, algorithm) {
+  if (algorithm === "pbkdf2") {
+    return derivePbkdf2Hash(password, saltHex);
+  }
+
+  if (algorithm === "sha256i") {
+    return deriveFallbackHash(password, saltHex);
+  }
+
+  throw new Error("Unsupported password algorithm.");
+}
+
+async function derivePreferredHash(password, saltHex) {
+  try {
+    return {
+      algorithm: "pbkdf2",
+      hash: await derivePbkdf2Hash(password, saltHex)
+    };
+  } catch (error) {
+    console.warn("PBKDF2 unavailable, falling back to iterative SHA-256.", error);
+
+    return {
+      algorithm: "sha256i",
+      hash: await deriveFallbackHash(password, saltHex)
+    };
+  }
+}
+
+function encodeStoredHash(algorithm, hash) {
+  return algorithm + HASH_SEPARATOR + hash;
+}
+
+function decodeStoredHash(storedHash) {
+  const value = String(storedHash || "").trim();
+  const separatorIndex = value.indexOf(HASH_SEPARATOR);
+
+  if (separatorIndex === -1) {
+    return {
+      algorithm: "pbkdf2",
+      hash: value
+    };
+  }
+
+  return {
+    algorithm: value.slice(0, separatorIndex),
+    hash: value.slice(separatorIndex + 1)
+  };
 }
 
 function timingSafeEqual(left, right) {
@@ -60,9 +144,12 @@ export async function hashPassword(password) {
   }
 
   const salt = randomSalt();
-  const hash = await deriveHash(password, salt);
+  const derived = await derivePreferredHash(password, salt);
 
-  return { salt, hash };
+  return {
+    salt,
+    hash: encodeStoredHash(derived.algorithm, derived.hash)
+  };
 }
 
 export async function verifyPassword(password, storedHash, storedSalt) {
@@ -70,6 +157,7 @@ export async function verifyPassword(password, storedHash, storedSalt) {
     return false;
   }
 
-  const derived = await deriveHash(password, storedSalt);
-  return timingSafeEqual(derived, storedHash);
+  const parsed = decodeStoredHash(storedHash);
+  const derived = await deriveHash(password, storedSalt, parsed.algorithm);
+  return timingSafeEqual(derived, parsed.hash);
 }

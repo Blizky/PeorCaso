@@ -86,16 +86,24 @@ async function sign(encodedPayload, env) {
     throw new HttpError(500, "Missing SESSION_SECRET binding.");
   }
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(encodedPayload));
+  try {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(encodedPayload));
 
-  return bytesToBase64Url(new Uint8Array(signature));
+    return bytesToBase64Url(new Uint8Array(signature));
+  } catch (error) {
+    console.warn("HMAC unavailable, falling back to digest-based signing.", error);
+    const bytes = new TextEncoder().encode(secret + "." + encodedPayload);
+    const signature = await crypto.subtle.digest("SHA-256", bytes);
+
+    return bytesToBase64Url(new Uint8Array(signature));
+  }
 }
 
 function cookieSecureFlag(request) {

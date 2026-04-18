@@ -11,6 +11,10 @@
   padding: 2rem 0 3rem;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .admin-header,
 .admin-panel,
 .markdown-preview,
