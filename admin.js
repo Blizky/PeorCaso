@@ -6,6 +6,8 @@ const state = {
   categories: [],
   posts: [],
   users: [],
+  inviteToken: "",
+  inviteData: null,
   editingCategoryId: null,
   editingPostId: null,
   editingUserId: null
@@ -30,6 +32,14 @@ const refs = {
   categorySlug: document.querySelector("[data-category-slug]"),
   categorySortOrder: document.querySelector("[data-category-sort-order]"),
   imagePreview: document.querySelector("[data-image-preview]"),
+  inviteClose: document.querySelectorAll("[data-invite-close]"),
+  inviteCopy: document.querySelector("[data-invite-copy]"),
+  inviteEmail: document.querySelector("[data-invite-email]"),
+  inviteForm: document.querySelector("[data-invite-form]"),
+  inviteModal: document.querySelector("[data-invite-modal]"),
+  invitePassword: document.querySelector("[data-invite-password]"),
+  inviteSubmit: document.querySelector("[data-invite-submit]"),
+  inviteTitle: document.querySelector("[data-invite-title]"),
   loginEmail: document.querySelector("[data-login-email]"),
   loginForm: document.querySelector("[data-login-form]"),
   loginPassword: document.querySelector("[data-login-password]"),
@@ -63,7 +73,6 @@ const refs = {
   userList: document.querySelector("[data-user-list]"),
   userName: document.querySelector("[data-user-name]"),
   userPanel: document.querySelector("[data-user-panel]"),
-  userPassword: document.querySelector("[data-user-password]"),
   userReset: document.querySelector("[data-user-reset]")
 };
 
@@ -94,6 +103,56 @@ function canApprovePosts() {
 function setStatus(message, isError) {
   refs.status.textContent = message;
   refs.status.style.color = isError ? "var(--color-danger)" : "var(--color-text-soft)";
+}
+
+function clearInviteTokenFromUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("invite");
+  window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+}
+
+function closeInviteModal(clearToken) {
+  refs.inviteModal.hidden = true;
+  refs.inviteForm.reset();
+
+  if (clearToken) {
+    state.inviteToken = "";
+    state.inviteData = null;
+    clearInviteTokenFromUrl();
+  }
+}
+
+function openInviteModal() {
+  if (!state.inviteData) {
+    return;
+  }
+
+  refs.inviteTitle.textContent = state.inviteData.purpose === "reset_password"
+    ? "Choose a new password"
+    : "Activate your account";
+  refs.inviteCopy.textContent = state.inviteData.name + " · " + accessLabel(state.inviteData.accessLevel) + " · expires " + state.inviteData.expiresAt;
+  refs.inviteEmail.value = state.inviteData.email;
+  refs.inviteSubmit.textContent = state.inviteData.purpose === "reset_password"
+    ? "Save new password"
+    : "Accept access";
+  refs.inviteModal.hidden = false;
+}
+
+function handleInviteResult(payload, fallbackMessage) {
+  const invite = payload && payload.invite ? payload.invite : null;
+
+  if (!invite) {
+    setStatus(fallbackMessage);
+    return;
+  }
+
+  if (!invite.delivered) {
+    window.prompt("Copy the invite link", invite.url);
+  }
+
+  setStatus(invite.error || (invite.delivered
+    ? "User saved and invite email sent."
+    : fallbackMessage + " Email delivery is not configured, so copy the link instead."));
 }
 
 async function api(path, options) {
@@ -267,14 +326,17 @@ function renderUsers() {
   state.users.forEach(function (user) {
     const item = document.createElement("article");
     const editButton = document.createElement("button");
-    const resetPasswordButton = document.createElement("button");
+    const inviteButton = document.createElement("button");
+    const inviteMeta = user.pendingInvite
+      ? " · " + (user.pendingInvite.purpose === "invite" ? "invite pending" : "reset pending") + " until " + user.pendingInvite.expiresAt
+      : "";
 
     item.className = "item-card";
     item.innerHTML = [
       '<div class="item-card__head">',
       '<div>',
       '<h3 class="item-title">' + user.name + "</h3>",
-      '<p class="item-meta">' + user.email + " · " + accessLabel(user.accessLevel) + "</p>",
+      '<p class="item-meta">' + user.email + " · " + accessLabel(user.accessLevel) + inviteMeta + "</p>",
       "</div>",
       "</div>"
     ].join("");
@@ -288,26 +350,20 @@ function renderUsers() {
       refs.userName.value = user.name;
       refs.userEmail.value = user.email;
       refs.userAccessLevel.value = String(user.accessLevel);
-      refs.userPassword.value = "";
     });
 
-    resetPasswordButton.className = "button button-secondary button-compact";
-    resetPasswordButton.type = "button";
-    resetPasswordButton.textContent = "Reset password";
-    resetPasswordButton.addEventListener("click", async function () {
-      const nextPassword = window.prompt("Enter a new password for " + user.email);
-
-      if (!nextPassword) {
-        return;
-      }
-
+    inviteButton.className = "button button-secondary button-compact";
+    inviteButton.type = "button";
+    inviteButton.textContent = user.pendingInvite && user.pendingInvite.purpose === "invite"
+      ? "Resend invite"
+      : "Send password link";
+    inviteButton.addEventListener("click", async function () {
       try {
-        await api("/api/admin/users/" + user.id + "/password", {
-          method: "PUT",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ password: nextPassword })
+        const payload = await api("/api/admin/users/" + user.id + "/invite", {
+          method: "POST"
         });
-        setStatus("Password reset for " + user.email + ".");
+        await loadBootstrap();
+        handleInviteResult(payload, "Link created for " + user.email + ".");
       } catch (error) {
         setStatus(error.message, true);
       }
@@ -315,7 +371,7 @@ function renderUsers() {
 
     const actions = document.createElement("div");
     actions.className = "item-card__actions";
-    actions.append(editButton, resetPasswordButton);
+    actions.append(editButton, inviteButton);
     item.append(actions);
     refs.userList.append(item);
   });
@@ -393,6 +449,22 @@ async function loadSession() {
   state.currentUser = payload.user || null;
   state.hasUsers = Boolean(payload.hasUsers);
   renderAuthState();
+}
+
+async function loadInvite() {
+  const token = new URL(window.location.href).searchParams.get("invite");
+
+  state.inviteToken = token ? token.trim() : "";
+  state.inviteData = null;
+
+  if (!state.inviteToken || state.currentUser) {
+    refs.inviteModal.hidden = true;
+    return;
+  }
+
+  const payload = await api("/api/admin/invite?token=" + encodeURIComponent(state.inviteToken));
+  state.inviteData = payload.invite;
+  openInviteModal();
 }
 
 async function loadBootstrap() {
@@ -596,11 +668,9 @@ function bindEvents() {
       if (state.editingUserId) {
         endpoint = "/api/admin/users/" + state.editingUserId;
         method = "PUT";
-      } else {
-        payload.password = refs.userPassword.value;
       }
 
-      await api(endpoint, {
+      const response = await api(endpoint, {
         method,
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload)
@@ -608,10 +678,40 @@ function bindEvents() {
 
       await loadBootstrap();
       resetUserForm();
-      setStatus("User saved.");
+
+      if (method === "POST") {
+        handleInviteResult(response, "User saved.");
+      } else {
+        setStatus("User saved.");
+      }
     } catch (error) {
       setStatus(error.message, true);
     }
+  });
+
+  refs.inviteForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    try {
+      await api("/api/admin/invite/accept", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          token: state.inviteToken,
+          password: refs.invitePassword.value
+        })
+      });
+      closeInviteModal(true);
+      window.location.assign("/admin.html");
+    } catch (error) {
+      setStatus(error.message, true);
+    }
+  });
+
+  refs.inviteClose.forEach(function (button) {
+    button.addEventListener("click", function () {
+      closeInviteModal(true);
+    });
   });
 
   refs.categoryForm.addEventListener("submit", async function (event) {
@@ -709,6 +809,8 @@ async function init() {
       await loadBootstrap();
       return;
     }
+
+    await loadInvite();
 
     setStatus(state.hasUsers ? "Log in with your PeorCaso account." : "Create the first admin account.");
   } catch (error) {

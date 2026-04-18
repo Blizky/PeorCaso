@@ -26,6 +26,12 @@ function randomSalt() {
   return bytesToHex(bytes);
 }
 
+function randomPasswordValue() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return bytesToHex(bytes);
+}
+
 function concatBytes() {
   const segments = Array.from(arguments);
   const totalLength = segments.reduce(function (sum, bytes) {
@@ -160,4 +166,8 @@ export async function verifyPassword(password, storedHash, storedSalt) {
   const parsed = decodeStoredHash(storedHash);
   const derived = await deriveHash(password, storedSalt, parsed.algorithm);
   return timingSafeEqual(derived, parsed.hash);
+}
+
+export async function hashTemporaryPassword() {
+  return hashPassword(randomPasswordValue());
 }

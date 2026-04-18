@@ -1,9 +1,17 @@
-import { canManageUsers, requireUser } from "../../_lib/auth.js";
-import { handleError, HttpError, json, readJson } from "../../_lib/http.js";
-import { generateInviteToken, hashInviteToken, inviteExpiresAt } from "../../_lib/invite.js";
-import { sendInviteEmail } from "../../_lib/mailer.js";
-import { hashTemporaryPassword } from "../../_lib/password.js";
-import { createUser, createUserInvite, getDb, validateUserInput } from "../../_lib/store.js";
+import { canManageUsers, requireUser } from "../../../../_lib/auth.js";
+import { handleError, HttpError, json } from "../../../../_lib/http.js";
+import { generateInviteToken, hashInviteToken, inviteExpiresAt } from "../../../../_lib/invite.js";
+import { sendInviteEmail } from "../../../../_lib/mailer.js";
+import {
+  createUserInvite,
+  getDb,
+  getUserById,
+  getUserPendingInvite
+} from "../../../../_lib/store.js";
+
+function parseId(params) {
+  return Number(params.id);
+}
 
 export async function onRequestPost(context) {
   try {
@@ -13,20 +21,19 @@ export async function onRequestPost(context) {
       throw new HttpError(403, "Insufficient permissions.");
     }
 
-    const input = validateUserInput(await readJson(context.request), {
-      includeAccessLevel: true,
-      requirePassword: false
-    });
     const db = getDb(context.env);
-    const temporaryPassword = await hashTemporaryPassword();
-    const user = await createUser(db, input, temporaryPassword.hash, temporaryPassword.salt);
+    const user = await getUserById(db, parseId(context.params));
+    const pendingInvite = await getUserPendingInvite(db, user.id);
+    const purpose = pendingInvite && pendingInvite.purpose === "invite"
+      ? "invite"
+      : "reset_password";
     const token = generateInviteToken();
     const expiresAt = inviteExpiresAt();
 
     await createUserInvite(db, {
       userId: user.id,
       tokenHash: await hashInviteToken(token),
-      purpose: "invite",
+      purpose,
       expiresAt,
       createdBy: currentUser.id
     });
@@ -41,19 +48,19 @@ export async function onRequestPost(context) {
       delivery = await sendInviteEmail(context.request, context.env, {
         email: user.email,
         name: user.name,
-        purpose: "invite",
+        purpose,
         token,
         expiresAt
       });
     } catch (error) {
       console.error(error);
-      deliveryError = "The user was created, but the invite email could not be sent.";
+      deliveryError = "The link was created, but the email could not be sent.";
     }
 
     return json({
       user,
       invite: {
-        purpose: "invite",
+        purpose,
         delivered: delivery.delivered,
         url: delivery.inviteUrl,
         expiresAt,

@@ -3,6 +3,7 @@ import { renderMarkdown, slugify, stripMarkdown } from "../../shared/markdown.js
 
 const POST_STATUSES = new Set(["pending", "published"]);
 const ACCESS_LEVELS = new Set([1, 2, 3]);
+const OPEN_INVITE_FILTER = "used_at IS NULL AND expires_at > ?1";
 
 function excerptFromMarkdown(markdown) {
   const plain = stripMarkdown(markdown);
@@ -63,8 +64,26 @@ export function sanitizeUser(record) {
     name: record.name,
     accessLevel: Number(record.access_level),
     isActive: Boolean(record.is_active),
-    updatedAt: record.updated_at
+    updatedAt: record.updated_at,
+    pendingInvite: record.pending_invite_purpose ? {
+      purpose: record.pending_invite_purpose,
+      expiresAt: record.pending_invite_expires_at
+    } : null
   };
+}
+
+export async function tableExists(db, tableName) {
+  const record = await db.prepare(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?1"
+  ).bind(tableName).first();
+
+  return Boolean(record);
+}
+
+export async function requireInvitesTable(db) {
+  if (!await tableExists(db, "user_invites")) {
+    throw new HttpError(500, "Missing user_invites table. Run the invite migration.");
+  }
 }
 
 export function validateCategoryInput(body) {
@@ -221,9 +240,13 @@ export async function countUsers(db) {
 }
 
 export async function listUsers(db) {
+  const baseQuery = "SELECT id, email, name, access_level, is_active, updated_at";
+  const inviteFields = await tableExists(db, "user_invites")
+    ? ", (SELECT purpose FROM user_invites WHERE user_id = users.id AND " + OPEN_INVITE_FILTER + " ORDER BY created_at DESC LIMIT 1) AS pending_invite_purpose, (SELECT expires_at FROM user_invites WHERE user_id = users.id AND " + OPEN_INVITE_FILTER + " ORDER BY created_at DESC LIMIT 1) AS pending_invite_expires_at"
+    : ", NULL AS pending_invite_purpose, NULL AS pending_invite_expires_at";
   const response = await db.prepare(
-    "SELECT id, email, name, access_level, is_active, updated_at FROM users ORDER BY access_level ASC, name ASC, email ASC"
-  ).all();
+    baseQuery + inviteFields + " FROM users ORDER BY access_level ASC, name ASC, email ASC"
+  ).bind(new Date().toISOString()).all();
 
   return (response.results || []).map(sanitizeUser);
 }
@@ -264,6 +287,34 @@ export async function createUser(db, input, passwordHash, passwordSalt) {
   return sanitizeUser(await getUserAuthById(db, result.meta.last_row_id));
 }
 
+export async function getUserById(db, id) {
+  const record = await db.prepare(
+    "SELECT id, email, name, access_level, is_active, updated_at FROM users WHERE id = ?1"
+  ).bind(id).first();
+
+  if (!record) {
+    throw new HttpError(404, "User not found.");
+  }
+
+  return sanitizeUser(record);
+}
+
+export async function getUserPendingInvite(db, userId) {
+  await requireInvitesTable(db);
+  const record = await db.prepare(
+    "SELECT purpose, expires_at FROM user_invites WHERE user_id = ?1 AND used_at IS NULL ORDER BY created_at DESC LIMIT 1"
+  ).bind(userId).first();
+
+  if (!record || record.expires_at <= new Date().toISOString()) {
+    return null;
+  }
+
+  return {
+    purpose: record.purpose,
+    expiresAt: record.expires_at
+  };
+}
+
 export async function updateUserProfile(db, id, input) {
   const fields = [
     "email = ?1",
@@ -300,6 +351,90 @@ export async function updateUserPassword(db, id, passwordHash, passwordSalt) {
   if (!result.meta.changes) {
     throw new HttpError(404, "User not found.");
   }
+}
+
+export async function expireOpenInvites(db, userId, purpose) {
+  await requireInvitesTable(db);
+  await db.prepare(
+    "UPDATE user_invites SET used_at = ?1 WHERE user_id = ?2 AND purpose = ?3 AND used_at IS NULL"
+  ).bind(new Date().toISOString(), userId, purpose).run();
+}
+
+export async function createUserInvite(db, input) {
+  await requireInvitesTable(db);
+  await expireOpenInvites(db, input.userId, input.purpose);
+
+  const now = new Date().toISOString();
+  const result = await db.prepare(
+    "INSERT INTO user_invites (user_id, token_hash, purpose, expires_at, sent_at, created_by, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"
+  ).bind(
+    input.userId,
+    input.tokenHash,
+    input.purpose,
+    input.expiresAt,
+    now,
+    input.createdBy || null,
+    now
+  ).run();
+
+  return getInviteById(db, result.meta.last_row_id);
+}
+
+export async function getInviteById(db, id) {
+  await requireInvitesTable(db);
+  const record = await db.prepare(
+    "SELECT user_invites.id, user_invites.user_id, user_invites.purpose, user_invites.expires_at, user_invites.sent_at, user_invites.used_at, users.email, users.name, users.access_level FROM user_invites INNER JOIN users ON users.id = user_invites.user_id WHERE user_invites.id = ?1"
+  ).bind(id).first();
+
+  if (!record) {
+    throw new HttpError(404, "Invite not found.");
+  }
+
+  return {
+    id: record.id,
+    userId: record.user_id,
+    email: record.email,
+    name: record.name,
+    accessLevel: Number(record.access_level),
+    purpose: record.purpose,
+    expiresAt: record.expires_at,
+    sentAt: record.sent_at,
+    usedAt: record.used_at
+  };
+}
+
+export async function getOpenInviteByTokenHash(db, tokenHash) {
+  await requireInvitesTable(db);
+  const record = await db.prepare(
+    "SELECT user_invites.id, user_invites.user_id, user_invites.purpose, user_invites.expires_at, user_invites.sent_at, user_invites.used_at, users.email, users.name, users.access_level FROM user_invites INNER JOIN users ON users.id = user_invites.user_id WHERE user_invites.token_hash = ?1 AND user_invites.used_at IS NULL"
+  ).bind(tokenHash).first();
+
+  if (!record) {
+    return null;
+  }
+
+  if (record.expires_at <= new Date().toISOString()) {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    userId: record.user_id,
+    email: record.email,
+    name: record.name,
+    accessLevel: Number(record.access_level),
+    purpose: record.purpose,
+    expiresAt: record.expires_at,
+    sentAt: record.sent_at,
+    usedAt: record.used_at
+  };
+}
+
+export async function markInviteUsed(db, id) {
+  await requireInvitesTable(db);
+  await db.prepare(
+    "UPDATE user_invites SET used_at = ?1 WHERE id = ?2"
+  ).bind(new Date().toISOString(), id).run();
 }
 
 export async function listCategories(db) {

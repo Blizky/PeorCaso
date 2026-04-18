@@ -12,6 +12,20 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS user_invites (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  purpose TEXT NOT NULL CHECK (purpose IN ('invite', 'reset_password')),
+  expires_at TEXT NOT NULL,
+  sent_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  used_at TEXT NULL,
+  created_by INTEGER NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -43,6 +57,9 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_access_level ON users (access_level, name);
+CREATE INDEX IF NOT EXISTS idx_user_invites_user_id ON user_invites (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_invites_token_hash ON user_invites (token_hash);
+CREATE INDEX IF NOT EXISTS idx_user_invites_open ON user_invites (used_at, expires_at);
 CREATE INDEX IF NOT EXISTS idx_categories_sort_order ON categories (sort_order, name);
 CREATE INDEX IF NOT EXISTS idx_posts_post_date ON posts (post_date DESC, id DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_category_id ON posts (category_id);

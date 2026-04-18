@@ -95,6 +95,29 @@
   gap: 1rem;
 }
 
+.invite-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.invite-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(var(--rgb-bg), 0.78);
+}
+
+.invite-modal__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 32rem);
+  display: grid;
+  gap: 1rem;
+}
+
 .admin-field {
   display: grid;
   gap: 0.45rem;

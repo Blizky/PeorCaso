@@ -61,6 +61,36 @@
 
     <p class="admin-status" data-status aria-live="polite">Checking session…</p>
 
+    <section class="invite-modal" data-invite-modal hidden>
+      <div class="invite-modal__backdrop" data-invite-close></div>
+      <div class="invite-modal__dialog card" role="dialog" aria-modal="true" aria-labelledby="invite-modal-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Access</p>
+            <h2 id="invite-modal-title" data-invite-title>Set your password</h2>
+            <p data-invite-copy></p>
+          </div>
+        </div>
+
+        <form class="admin-form" data-invite-form>
+          <label class="admin-field">
+            <span>Username</span>
+            <input type="text" data-invite-email readonly>
+          </label>
+
+          <label class="admin-field">
+            <span>Password</span>
+            <input type="password" placeholder="Choose a secure password" data-invite-password>
+          </label>
+
+          <div class="form-actions">
+            <button class="button button-primary" type="submit" data-invite-submit>Accept access</button>
+            <button class="button button-secondary" type="button" data-invite-close>Close</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
     <main class="admin-grid" data-admin-app hidden>
       <section class="admin-panel card">
         <div class="panel-heading">
@@ -133,12 +163,7 @@
               </select>
             </label>
 
-            <label class="admin-field">
-              <span>Password</span>
-              <input type="password" placeholder="Required for new users" data-user-password>
-            </label>
-
-            <p class="helper-text">Use the reset password action on an existing user to assign a new password.</p>
+            <p class="helper-text">Saving a new user sends an email link to `/admin.html` so they can set their own password.</p>
 
             <div class="form-actions">
               <button class="button button-primary" type="submit">Save user</button>
