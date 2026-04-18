@@ -106,10 +106,26 @@
 .admin-field textarea,
 .admin-field select {
   width: 100%;
+  min-height: 3rem;
+  padding: 0.75rem 0.875rem;
+  font-size: 1rem;
 }
 
 .helper-text {
   font-size: 0.9rem;
+}
+
+.admin-field textarea {
+  min-height: 10rem;
+  resize: vertical;
+}
+
+.auth-form .button,
+.admin-form .button,
+.session-card .button {
+  min-height: 2.5rem;
+  padding: 0.625rem 0.95rem;
+  font-size: 0.95rem;
 }
 
 .item-list {
