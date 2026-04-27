@@ -1,5 +1,5 @@
-import { canManageCategories, requireUser } from "../../../_lib/auth.js";
-import { handleError, HttpError, json, noContent, readJson } from "../../../_lib/http.js";
+import { requireUser } from "../../../_lib/auth.js";
+import { handleError, json, noContent, readJson } from "../../../_lib/http.js";
 import { deleteCategory, getDb, updateCategory, validateCategoryInput } from "../../../_lib/store.js";
 
 function parseId(params) {
@@ -8,12 +8,7 @@ function parseId(params) {
 
 export async function onRequestPut(context) {
   try {
-    const currentUser = await requireUser(context, 2);
-
-    if (!canManageCategories(currentUser)) {
-      throw new HttpError(403, "Insufficient permissions.");
-    }
-
+    await requireUser(context, "admin");
     const category = await updateCategory(
       getDb(context.env),
       parseId(context.params),
@@ -28,12 +23,7 @@ export async function onRequestPut(context) {
 
 export async function onRequestDelete(context) {
   try {
-    const currentUser = await requireUser(context, 2);
-
-    if (!canManageCategories(currentUser)) {
-      throw new HttpError(403, "Insufficient permissions.");
-    }
-
+    await requireUser(context, "admin");
     await deleteCategory(getDb(context.env), parseId(context.params));
     return noContent();
   } catch (error) {

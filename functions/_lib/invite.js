@@ -38,5 +38,13 @@ export async function hashInviteToken(token) {
 }
 
 export function inviteActionLabel(purpose) {
-  return purpose === "reset_password" ? "password reset" : "account invite";
+  if (purpose === "reset_password") {
+    return "password reset";
+  }
+
+  if (purpose === "activate_account") {
+    return "account activation";
+  }
+
+  return "account invite";
 }

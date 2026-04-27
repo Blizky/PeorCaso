@@ -11,13 +11,20 @@
 <body class="admin-body">
   <div class="admin-shell">
     <header class="admin-header card">
-      <div>
+      <div class="admin-header__copy">
         <p class="eyebrow">Admin</p>
-        <h1>Editorial workspace</h1>
-        <p>Level 1 manages users, level 2 approves and edits articles, and level 3 submits posts for review.</p>
+        <h1>Publishing workspace</h1>
+        <p>This reduced admin keeps the site focused on editorial work only: log in, maintain categories, and publish articles.</p>
+        <div class="auth-actions">
+          <a class="button button-secondary" href="/">Back to site</a>
+        </div>
       </div>
 
       <div class="auth-stack">
+        <div class="auth-actions auth-actions--end">
+          <button class="button button-secondary" type="button" data-header-login-link>Login</button>
+        </div>
+
         <form class="auth-form" data-login-form hidden>
           <label class="admin-field">
             <span>Email</span>
@@ -28,7 +35,19 @@
             <input type="password" placeholder="Password" data-login-password>
           </label>
           <div class="auth-actions">
+            <button class="button button-secondary" type="button" data-show-recover>Forgot password</button>
             <button class="button button-primary" type="submit">Log in</button>
+          </div>
+        </form>
+
+        <form class="auth-form" data-recover-form hidden>
+          <label class="admin-field">
+            <span>Admin email</span>
+            <input type="email" placeholder="name@peorcaso.com" data-recover-email>
+          </label>
+          <div class="auth-actions">
+            <button class="button button-secondary" type="button" data-recover-back>Back</button>
+            <button class="button button-primary" type="submit">Send reset link</button>
           </div>
         </form>
 
@@ -50,6 +69,22 @@
           </div>
         </form>
 
+        <form class="auth-form" data-reset-form hidden>
+          <p class="helper-text" data-reset-copy></p>
+          <label class="admin-field">
+            <span>Email</span>
+            <input type="email" data-reset-email readonly>
+          </label>
+          <label class="admin-field">
+            <span>New password</span>
+            <input type="password" placeholder="Choose a new password" data-reset-password>
+          </label>
+          <div class="auth-actions">
+            <button class="button button-secondary" type="button" data-reset-cancel>Back to login</button>
+            <button class="button button-primary" type="submit">Save new password</button>
+          </div>
+        </form>
+
         <section class="session-card" data-session-card hidden>
           <p class="session-card__meta" data-session-user></p>
           <div class="auth-actions">
@@ -61,42 +96,12 @@
 
     <p class="admin-status" data-status aria-live="polite">Checking session…</p>
 
-    <section class="invite-modal" data-invite-modal hidden>
-      <div class="invite-modal__backdrop" data-invite-close></div>
-      <div class="invite-modal__dialog card" role="dialog" aria-modal="true" aria-labelledby="invite-modal-title">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">Access</p>
-            <h2 id="invite-modal-title" data-invite-title>Set your password</h2>
-            <p data-invite-copy></p>
-          </div>
-        </div>
-
-        <form class="admin-form" data-invite-form>
-          <label class="admin-field">
-            <span>Username</span>
-            <input type="text" data-invite-email readonly>
-          </label>
-
-          <label class="admin-field">
-            <span>Password</span>
-            <input type="password" placeholder="Choose a secure password" data-invite-password>
-          </label>
-
-          <div class="form-actions">
-            <button class="button button-primary" type="submit" data-invite-submit>Accept access</button>
-            <button class="button button-secondary" type="button" data-invite-close>Close</button>
-          </div>
-        </form>
-      </div>
-    </section>
-
     <main class="admin-grid" data-admin-app hidden>
       <section class="admin-panel card">
         <div class="panel-heading">
           <div>
             <p class="eyebrow">Account</p>
-            <h2>Your account</h2>
+            <h2>Admin account</h2>
           </div>
         </div>
 
@@ -128,49 +133,6 @@
               <button class="button button-secondary" type="submit">Change password</button>
             </div>
           </form>
-        </div>
-      </section>
-
-      <section class="admin-panel card" data-user-panel hidden>
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">Users</p>
-            <h2>User manager</h2>
-          </div>
-          <button class="button button-secondary" type="button" data-user-reset>New user</button>
-        </div>
-
-        <div class="account-layout">
-          <form class="admin-form" data-user-form>
-            <input type="hidden" data-user-id>
-
-            <label class="admin-field">
-              <span>Name</span>
-              <input type="text" placeholder="Author name" data-user-name>
-            </label>
-
-            <label class="admin-field">
-              <span>Email</span>
-              <input type="email" placeholder="author@peorcaso.com" data-user-email>
-            </label>
-
-            <label class="admin-field">
-              <span>Access level</span>
-              <select data-user-access-level>
-                <option value="1">1 · Admin</option>
-                <option value="2">2 · Editor / Approver</option>
-                <option value="3">3 · Contributor</option>
-              </select>
-            </label>
-
-            <p class="helper-text">Saving a new user sends an email link to `/admin.html` so they can set their own password.</p>
-
-            <div class="form-actions">
-              <button class="button button-primary" type="submit">Save user</button>
-            </div>
-          </form>
-
-          <div class="item-list" data-user-list></div>
         </div>
       </section>
 
@@ -225,6 +187,40 @@
           <button class="button button-secondary" type="button" data-post-reset>New article</button>
         </div>
 
+        <form class="admin-form admin-form--inline" data-youtube-form>
+          <div class="panel-heading panel-heading--tight">
+            <div>
+              <p class="eyebrow">YouTube</p>
+              <h3>Sync playlist into posts</h3>
+            </div>
+            <button class="button button-primary" type="submit">Sync playlist</button>
+          </div>
+
+          <div class="account-layout">
+            <label class="admin-field">
+              <span>Playlist ID or URL</span>
+              <input type="text" placeholder="PL..." data-youtube-playlist-id>
+            </label>
+
+            <label class="admin-field">
+              <span>Category</span>
+              <select data-youtube-category></select>
+            </label>
+          </div>
+
+          <div class="account-layout">
+            <label class="admin-field">
+              <span>Imported post status</span>
+              <select data-youtube-status>
+                <option value="visible">Visible</option>
+                <option value="pending">Draft</option>
+              </select>
+            </label>
+
+            <p class="helper-text">Each sync creates or updates one post per playlist video, using the YouTube publish date so the newest video appears first on the front page.</p>
+          </div>
+        </form>
+
         <div class="post-layout">
           <div class="item-list item-list--posts" data-post-list></div>
 
@@ -237,15 +233,14 @@
                 <select data-post-category></select>
               </label>
 
-              <label class="admin-field" data-post-status-field hidden>
+              <label class="admin-field">
                 <span>Status</span>
                 <select data-post-status>
-                  <option value="published">Published</option>
-                  <option value="pending">Pending review</option>
+                  <option value="visible">Visible</option>
+                  <option value="pending">Draft</option>
+                  <option value="removed">Removed</option>
                 </select>
               </label>
-
-              <p class="helper-text" data-post-status-copy hidden>Your articles are submitted as pending until level 1 or 2 approves them.</p>
 
               <label class="admin-field">
                 <span>Title</span>

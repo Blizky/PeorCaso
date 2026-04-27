@@ -2,15 +2,15 @@ import { renderMarkdown, slugify } from "./shared/markdown.js";
 
 const state = {
   currentUser: null,
+  authMode: "login",
   hasUsers: true,
   categories: [],
   posts: [],
-  users: [],
-  inviteToken: "",
-  inviteData: null,
+  recoveryData: null,
+  recoveryToken: "",
+  youtubeDefaultPlaylistId: "",
   editingCategoryId: null,
-  editingPostId: null,
-  editingUserId: null
+  editingPostId: null
 };
 
 const refs = {
@@ -26,20 +26,12 @@ const refs = {
   categoryId: document.querySelector("[data-category-id]"),
   categoryList: document.querySelector("[data-category-list]"),
   categoryName: document.querySelector("[data-category-name]"),
-  categoryPanel: document.querySelector("[data-category-panel]"),
   categoryReset: document.querySelector("[data-category-reset]"),
   categorySelect: document.querySelector("[data-post-category]"),
   categorySlug: document.querySelector("[data-category-slug]"),
   categorySortOrder: document.querySelector("[data-category-sort-order]"),
+  headerLoginLink: document.querySelector("[data-header-login-link]"),
   imagePreview: document.querySelector("[data-image-preview]"),
-  inviteClose: document.querySelectorAll("[data-invite-close]"),
-  inviteCopy: document.querySelector("[data-invite-copy]"),
-  inviteEmail: document.querySelector("[data-invite-email]"),
-  inviteForm: document.querySelector("[data-invite-form]"),
-  inviteModal: document.querySelector("[data-invite-modal]"),
-  invitePassword: document.querySelector("[data-invite-password]"),
-  inviteSubmit: document.querySelector("[data-invite-submit]"),
-  inviteTitle: document.querySelector("[data-invite-title]"),
   loginEmail: document.querySelector("[data-login-email]"),
   loginForm: document.querySelector("[data-login-form]"),
   loginPassword: document.querySelector("[data-login-password]"),
@@ -56,104 +48,28 @@ const refs = {
   postReset: document.querySelector("[data-post-reset]"),
   postSlug: document.querySelector("[data-post-slug]"),
   postStatus: document.querySelector("[data-post-status]"),
-  postStatusCopy: document.querySelector("[data-post-status-copy]"),
-  postStatusField: document.querySelector("[data-post-status-field]"),
   postTitle: document.querySelector("[data-post-title]"),
+  recoverBack: document.querySelector("[data-recover-back]"),
+  recoverEmail: document.querySelector("[data-recover-email]"),
+  recoverForm: document.querySelector("[data-recover-form]"),
+  resetCancel: document.querySelector("[data-reset-cancel]"),
+  resetCopy: document.querySelector("[data-reset-copy]"),
+  resetEmail: document.querySelector("[data-reset-email]"),
+  resetForm: document.querySelector("[data-reset-form]"),
+  resetPassword: document.querySelector("[data-reset-password]"),
   sessionCard: document.querySelector("[data-session-card]"),
   sessionUser: document.querySelector("[data-session-user]"),
+  showRecover: document.querySelector("[data-show-recover]"),
   setupEmail: document.querySelector("[data-setup-email]"),
   setupForm: document.querySelector("[data-setup-form]"),
   setupName: document.querySelector("[data-setup-name]"),
   setupPassword: document.querySelector("[data-setup-password]"),
   status: document.querySelector("[data-status]"),
-  userAccessLevel: document.querySelector("[data-user-access-level]"),
-  userEmail: document.querySelector("[data-user-email]"),
-  userForm: document.querySelector("[data-user-form]"),
-  userId: document.querySelector("[data-user-id]"),
-  userList: document.querySelector("[data-user-list]"),
-  userName: document.querySelector("[data-user-name]"),
-  userPanel: document.querySelector("[data-user-panel]"),
-  userReset: document.querySelector("[data-user-reset]")
+  youtubeCategory: document.querySelector("[data-youtube-category]"),
+  youtubeForm: document.querySelector("[data-youtube-form]"),
+  youtubePlaylistId: document.querySelector("[data-youtube-playlist-id]"),
+  youtubeStatus: document.querySelector("[data-youtube-status]")
 };
-
-function accessLabel(level) {
-  if (level === 1) {
-    return "1 · Admin";
-  }
-
-  if (level === 2) {
-    return "2 · Editor / Approver";
-  }
-
-  return "3 · Contributor";
-}
-
-function canManageUsers() {
-  return state.currentUser && state.currentUser.accessLevel === 1;
-}
-
-function canManageCategories() {
-  return state.currentUser && state.currentUser.accessLevel <= 2;
-}
-
-function canApprovePosts() {
-  return state.currentUser && state.currentUser.accessLevel <= 2;
-}
-
-function setStatus(message, isError) {
-  refs.status.textContent = message;
-  refs.status.style.color = isError ? "var(--color-danger)" : "var(--color-text-soft)";
-}
-
-function clearInviteTokenFromUrl() {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("invite");
-  window.history.replaceState({}, "", url.pathname + url.search + url.hash);
-}
-
-function closeInviteModal(clearToken) {
-  refs.inviteModal.hidden = true;
-  refs.inviteForm.reset();
-
-  if (clearToken) {
-    state.inviteToken = "";
-    state.inviteData = null;
-    clearInviteTokenFromUrl();
-  }
-}
-
-function openInviteModal() {
-  if (!state.inviteData) {
-    return;
-  }
-
-  refs.inviteTitle.textContent = state.inviteData.purpose === "reset_password"
-    ? "Choose a new password"
-    : "Activate your account";
-  refs.inviteCopy.textContent = state.inviteData.name + " · " + accessLabel(state.inviteData.accessLevel) + " · expires " + state.inviteData.expiresAt;
-  refs.inviteEmail.value = state.inviteData.email;
-  refs.inviteSubmit.textContent = state.inviteData.purpose === "reset_password"
-    ? "Save new password"
-    : "Accept access";
-  refs.inviteModal.hidden = false;
-}
-
-function handleInviteResult(payload, fallbackMessage) {
-  const invite = payload && payload.invite ? payload.invite : null;
-
-  if (!invite) {
-    setStatus(fallbackMessage);
-    return;
-  }
-
-  if (!invite.delivered) {
-    window.prompt("Copy the invite link", invite.url);
-  }
-
-  setStatus(invite.error || (invite.delivered
-    ? "User saved and invite email sent."
-    : fallbackMessage + " Email delivery is not configured, so copy the link instead."));
-}
 
 async function api(path, options) {
   const response = await fetch(path, options || {});
@@ -165,6 +81,16 @@ async function api(path, options) {
   }
 
   return payload;
+}
+
+function accessLabel(role) {
+  const normalized = String(role || "").trim();
+  return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : "";
+}
+
+function setStatus(message, isError) {
+  refs.status.textContent = message;
+  refs.status.style.color = isError ? "var(--color-danger)" : "var(--color-text-soft)";
 }
 
 function renderMarkdownPreview() {
@@ -179,30 +105,6 @@ function setImagePreview(url, alt) {
   }
 
   refs.imagePreview.innerHTML = '<img src="' + url + '" alt="' + (alt || "") + '">';
-}
-
-function resetCategoryForm() {
-  state.editingCategoryId = null;
-  refs.categoryForm.reset();
-  refs.categoryId.value = "";
-  refs.categorySortOrder.value = "0";
-}
-
-function resetUserForm() {
-  state.editingUserId = null;
-  refs.userForm.reset();
-  refs.userId.value = "";
-  refs.userAccessLevel.value = "3";
-}
-
-function resetPostForm() {
-  state.editingPostId = null;
-  refs.postForm.reset();
-  refs.postId.value = "";
-  refs.postDate.value = new Date().toISOString().slice(0, 10);
-  refs.postStatus.value = canApprovePosts() ? "published" : "pending";
-  refs.imagePreview.innerHTML = "<p>No image selected.</p>";
-  renderMarkdownPreview();
 }
 
 function bindAutoSlug(source, target) {
@@ -221,36 +123,124 @@ function bindAutoSlug(source, target) {
   });
 }
 
-function populateCategorySelect() {
-  refs.categorySelect.innerHTML = "";
+function resetCategoryForm() {
+  state.editingCategoryId = null;
+  refs.categoryForm.reset();
+  refs.categoryId.value = "";
+  refs.categorySortOrder.value = "0";
+}
 
-  state.categories.forEach(function (category) {
+function resetPostForm() {
+  state.editingPostId = null;
+  refs.postForm.reset();
+  refs.postId.value = "";
+  refs.postDate.value = new Date().toISOString().slice(0, 10);
+  refs.postStatus.value = "visible";
+  refs.postImageFile.value = "";
+  populateCategorySelect();
+  setImagePreview("", "");
+  renderMarkdownPreview();
+}
+
+function populateCategorySelect(selectedId) {
+  const nextSelectedId = selectedId !== undefined
+    ? String(selectedId)
+    : String(refs.categorySelect.value || "");
+  const nextYoutubeSelectedId = selectedId !== undefined
+    ? String(selectedId)
+    : String(refs.youtubeCategory.value || "");
+
+  refs.categorySelect.innerHTML = "";
+  refs.youtubeCategory.innerHTML = "";
+
+  if (!state.categories.length) {
+    [refs.categorySelect, refs.youtubeCategory].forEach(function (select) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "Create a category first";
+      select.append(option);
+    });
+    return;
+  }
+
+  state.categories.forEach(function (category, index) {
     const option = document.createElement("option");
+    const youtubeOption = document.createElement("option");
     option.value = String(category.id);
     option.textContent = category.name;
+    youtubeOption.value = String(category.id);
+    youtubeOption.textContent = category.name;
+
+    if ((nextSelectedId && nextSelectedId === String(category.id)) || (!nextSelectedId && index === 0)) {
+      option.selected = true;
+    }
+
+    if ((nextYoutubeSelectedId && nextYoutubeSelectedId === String(category.id)) || (!nextYoutubeSelectedId && index === 0)) {
+      youtubeOption.selected = true;
+    }
+
     refs.categorySelect.append(option);
+    refs.youtubeCategory.append(youtubeOption);
   });
 }
 
 function renderAuthState() {
-  refs.loginForm.hidden = state.currentUser || !state.hasUsers;
-  refs.setupForm.hidden = state.currentUser || state.hasUsers;
+  const isResetMode = Boolean(state.recoveryData);
+  const isRecoverMode = state.authMode === "recover" && !isResetMode;
+  const isLoginMode = state.authMode !== "recover" && !isResetMode;
+
+  refs.loginForm.hidden = Boolean(state.currentUser) || !state.hasUsers || !isLoginMode;
+  refs.recoverForm.hidden = Boolean(state.currentUser) || !state.hasUsers || !isRecoverMode;
+  refs.setupForm.hidden = Boolean(state.currentUser) || state.hasUsers || isResetMode;
+  refs.resetForm.hidden = Boolean(state.currentUser) || !isResetMode;
   refs.sessionCard.hidden = !state.currentUser;
   refs.adminApp.hidden = !state.currentUser;
+  refs.headerLoginLink.hidden = Boolean(state.currentUser) || !state.hasUsers;
 
   if (state.currentUser) {
-    refs.sessionUser.textContent = state.currentUser.name + " · " + state.currentUser.email + " · " + accessLabel(state.currentUser.accessLevel);
+    const pendingEmailCopy = state.currentUser.pendingEmail
+      ? " · pending email " + state.currentUser.pendingEmail.email
+      : "";
+    refs.sessionUser.textContent = state.currentUser.name + " · " + state.currentUser.email + pendingEmailCopy + " · " + accessLabel(state.currentUser.role);
+  } else {
+    refs.sessionUser.textContent = "";
+  }
+
+  if (state.recoveryData) {
+    refs.resetEmail.value = state.recoveryData.email;
+    refs.resetCopy.textContent = "Set a new password for " + state.recoveryData.email + ". This reset link expires on " + state.recoveryData.expiresAt + ".";
   }
 }
 
-function renderPermissions() {
-  refs.userPanel.hidden = !canManageUsers();
-  refs.categoryPanel.hidden = !canManageCategories();
-  refs.postStatusField.hidden = !canApprovePosts();
-  refs.postStatusCopy.hidden = canApprovePosts();
+function clearRecoveryTokenFromUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("invite");
+  window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+}
 
-  if (!canApprovePosts()) {
-    refs.postStatus.value = "pending";
+function exitRecoveryMode() {
+  state.recoveryData = null;
+  state.recoveryToken = "";
+  state.authMode = "login";
+  refs.resetForm.reset();
+  clearRecoveryTokenFromUrl();
+  renderAuthState();
+}
+
+function openLoginMode() {
+  if (state.recoveryData) {
+    state.recoveryData = null;
+    state.recoveryToken = "";
+    refs.resetForm.reset();
+    clearRecoveryTokenFromUrl();
+  }
+
+  state.authMode = "login";
+  renderAuthState();
+
+  if (!refs.loginForm.hidden) {
+    refs.loginEmail.focus();
+    refs.loginForm.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 }
 
@@ -260,7 +250,9 @@ function renderAccount() {
   }
 
   refs.accountName.value = state.currentUser.name;
-  refs.accountEmail.value = state.currentUser.email;
+  refs.accountEmail.value = state.currentUser.pendingEmail
+    ? state.currentUser.pendingEmail.email
+    : state.currentUser.email;
 }
 
 function renderCategories() {
@@ -270,6 +262,7 @@ function renderCategories() {
     const item = document.createElement("article");
     const editButton = document.createElement("button");
     const deleteButton = document.createElement("button");
+    const actions = document.createElement("div");
 
     item.className = "item-card";
     item.innerHTML = [
@@ -312,68 +305,10 @@ function renderCategories() {
       }
     });
 
-    const actions = document.createElement("div");
     actions.className = "item-card__actions";
     actions.append(editButton, deleteButton);
     item.append(actions);
     refs.categoryList.append(item);
-  });
-}
-
-function renderUsers() {
-  refs.userList.innerHTML = "";
-
-  state.users.forEach(function (user) {
-    const item = document.createElement("article");
-    const editButton = document.createElement("button");
-    const inviteButton = document.createElement("button");
-    const inviteMeta = user.pendingInvite
-      ? " · " + (user.pendingInvite.purpose === "invite" ? "invite pending" : "reset pending") + " until " + user.pendingInvite.expiresAt
-      : "";
-
-    item.className = "item-card";
-    item.innerHTML = [
-      '<div class="item-card__head">',
-      '<div>',
-      '<h3 class="item-title">' + user.name + "</h3>",
-      '<p class="item-meta">' + user.email + " · " + accessLabel(user.accessLevel) + inviteMeta + "</p>",
-      "</div>",
-      "</div>"
-    ].join("");
-
-    editButton.className = "button button-secondary button-compact";
-    editButton.type = "button";
-    editButton.textContent = "Edit";
-    editButton.addEventListener("click", function () {
-      state.editingUserId = user.id;
-      refs.userId.value = String(user.id);
-      refs.userName.value = user.name;
-      refs.userEmail.value = user.email;
-      refs.userAccessLevel.value = String(user.accessLevel);
-    });
-
-    inviteButton.className = "button button-secondary button-compact";
-    inviteButton.type = "button";
-    inviteButton.textContent = user.pendingInvite && user.pendingInvite.purpose === "invite"
-      ? "Resend invite"
-      : "Send password link";
-    inviteButton.addEventListener("click", async function () {
-      try {
-        const payload = await api("/api/admin/users/" + user.id + "/invite", {
-          method: "POST"
-        });
-        await loadBootstrap();
-        handleInviteResult(payload, "Link created for " + user.email + ".");
-      } catch (error) {
-        setStatus(error.message, true);
-      }
-    });
-
-    const actions = document.createElement("div");
-    actions.className = "item-card__actions";
-    actions.append(editButton, inviteButton);
-    item.append(actions);
-    refs.userList.append(item);
   });
 }
 
@@ -384,20 +319,17 @@ function renderPosts() {
     const item = document.createElement("article");
     const editButton = document.createElement("button");
     const deleteButton = document.createElement("button");
-    const approvedText = post.status === "published" && post.approvedBy
-      ? " · approved by " + post.approvedBy.name
-      : "";
+    const actions = document.createElement("div");
 
     item.className = "item-card";
     item.innerHTML = [
       '<div class="item-card__head">',
       '<div>',
       '<h3 class="item-title">' + post.title + "</h3>",
-      '<p class="item-meta">' + post.category.name + " · " + post.postDate + " · " + post.author.name + "</p>",
+      '<p class="item-meta">' + post.category.name + " · " + post.status + " · " + post.postDate + "</p>",
       "</div>",
       "</div>",
-      '<p class="item-meta">Status: ' + post.status + approvedText + "</p>",
-      '<p class="item-copy">' + (post.excerpt || "No excerpt.") + "</p>"
+      '<p class="item-copy">' + (post.excerpt || "No excerpt available.") + "</p>"
     ].join("");
 
     editButton.className = "button button-secondary button-compact";
@@ -406,14 +338,14 @@ function renderPosts() {
     editButton.addEventListener("click", function () {
       state.editingPostId = post.id;
       refs.postId.value = String(post.id);
-      refs.categorySelect.value = String(post.categoryId);
-      refs.postStatus.value = post.status;
       refs.postTitle.value = post.title;
       refs.postSlug.value = post.slug;
       refs.postDate.value = post.postDate;
       refs.postImageAlt.value = post.imageAlt || "";
-      refs.postImageUrl.value = post.imageUrl;
-      refs.postContent.value = post.contentMarkdown;
+      refs.postImageUrl.value = post.imageUrl || "";
+      refs.postStatus.value = post.status;
+      refs.postContent.value = post.contentMarkdown || "";
+      populateCategorySelect(post.categoryId);
       setImagePreview(post.imageUrl, post.imageAlt || post.title);
       renderMarkdownPreview();
     });
@@ -436,7 +368,6 @@ function renderPosts() {
       }
     });
 
-    const actions = document.createElement("div");
     actions.className = "item-card__actions";
     actions.append(editButton, deleteButton);
     item.append(actions);
@@ -449,22 +380,31 @@ async function loadSession() {
   state.currentUser = payload.user || null;
   state.hasUsers = Boolean(payload.hasUsers);
   renderAuthState();
+  renderAccount();
 }
 
-async function loadInvite() {
-  const token = new URL(window.location.href).searchParams.get("invite");
+async function loadRecovery() {
+  const token = String(new URL(window.location.href).searchParams.get("invite") || "").trim();
 
-  state.inviteToken = token ? token.trim() : "";
-  state.inviteData = null;
+  state.recoveryData = null;
+  state.recoveryToken = "";
 
-  if (!state.inviteToken || state.currentUser) {
-    refs.inviteModal.hidden = true;
+  if (!token || state.currentUser) {
+    renderAuthState();
     return;
   }
 
-  const payload = await api("/api/admin/invite?token=" + encodeURIComponent(state.inviteToken));
-  state.inviteData = payload.invite;
-  openInviteModal();
+  try {
+    const payload = await api("/api/admin/invite?token=" + encodeURIComponent(token));
+    state.recoveryToken = token;
+    state.recoveryData = payload.invite;
+    state.authMode = "login";
+    renderAuthState();
+  } catch (error) {
+    clearRecoveryTokenFromUrl();
+    renderAuthState();
+    setStatus(error.message, true);
+  }
 }
 
 async function loadBootstrap() {
@@ -472,36 +412,40 @@ async function loadBootstrap() {
   state.currentUser = payload.currentUser;
   state.categories = payload.categories || [];
   state.posts = payload.posts || [];
-  state.users = payload.users || [];
-
+  state.youtubeDefaultPlaylistId = payload.youtubeDefaults && payload.youtubeDefaults.playlistId
+    ? payload.youtubeDefaults.playlistId
+    : "";
   renderAuthState();
-  renderPermissions();
   renderAccount();
-  populateCategorySelect();
   renderCategories();
-  renderUsers();
   renderPosts();
+  populateCategorySelect();
 
-  if (!state.categories.length && canManageCategories()) {
-    setStatus("Connected. Create at least one category before publishing.");
-  } else {
-    setStatus("Connected. " + state.posts.length + " article" + (state.posts.length === 1 ? "" : "s") + " loaded.");
+  if (!refs.youtubePlaylistId.value.trim() && state.youtubeDefaultPlaylistId) {
+    refs.youtubePlaylistId.value = state.youtubeDefaultPlaylistId;
   }
+
+  if (!state.categories.length) {
+    setStatus("Connected. Add a category to start publishing.");
+    return;
+  }
+
+  setStatus("Connected. " + state.posts.length + " article" + (state.posts.length === 1 ? "" : "s") + " loaded.");
 }
 
 async function optimizeImage(file) {
   const sourceUrl = URL.createObjectURL(file);
-  const image = new Image();
-
-  await new Promise(function (resolve, reject) {
-    image.onload = resolve;
-    image.onerror = reject;
-    image.src = sourceUrl;
+  const image = await new Promise(function (resolve, reject) {
+    const nextImage = new Image();
+    nextImage.onload = function () {
+      resolve(nextImage);
+    };
+    nextImage.onerror = reject;
+    nextImage.src = sourceUrl;
   });
-
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
-  const targetWidth = 1200;
+  const targetWidth = 1400;
   const targetHeight = 900;
   const scale = Math.max(targetWidth / image.width, targetHeight / image.height);
   const drawWidth = image.width * scale;
@@ -600,11 +544,72 @@ function bindEvents() {
     }
   });
 
+  refs.showRecover.addEventListener("click", function () {
+    state.authMode = "recover";
+    refs.recoverEmail.value = refs.loginEmail.value.trim();
+    renderAuthState();
+    refs.recoverEmail.focus();
+  });
+
+  refs.recoverBack.addEventListener("click", function () {
+    openLoginMode();
+  });
+
+  refs.recoverForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    try {
+      await api("/api/admin/recover", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: refs.recoverEmail.value.trim()
+        })
+      });
+
+      state.authMode = "login";
+      renderAuthState();
+      setStatus("Password reset link sent.");
+    } catch (error) {
+      setStatus(error.message, true);
+    }
+  });
+
+  refs.resetCancel.addEventListener("click", function () {
+    exitRecoveryMode();
+  });
+
+  refs.headerLoginLink.addEventListener("click", function () {
+    openLoginMode();
+  });
+
+  refs.resetForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    try {
+      await api("/api/admin/invite/accept", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          token: state.recoveryToken,
+          password: refs.resetPassword.value
+        })
+      });
+      exitRecoveryMode();
+      await loadBootstrap();
+      setStatus("Password updated.");
+    } catch (error) {
+      setStatus(error.message, true);
+    }
+  });
+
   refs.logoutButton.addEventListener("click", async function () {
     await api("/api/admin/logout", { method: "POST" });
     state.currentUser = null;
+    state.authMode = "login";
     refs.adminApp.hidden = true;
     await loadSession();
+    await loadRecovery();
     setStatus(state.hasUsers ? "Logged out." : "Create the first admin account to start.");
   });
 
@@ -624,7 +629,14 @@ function bindEvents() {
       state.currentUser = payload.user;
       renderAccount();
       renderAuthState();
-      setStatus("Account updated.");
+
+      if (payload.emailChange && !payload.emailChange.delivered) {
+        window.prompt("Copy the email verification link", payload.emailChange.verificationUrl);
+      }
+
+      setStatus(payload.emailChange
+        ? "Account updated. Verify " + payload.emailChange.email + " to finish the email change."
+        : "Account updated.");
     } catch (error) {
       setStatus(error.message, true);
     }
@@ -649,70 +661,8 @@ function bindEvents() {
     }
   });
 
-  refs.userReset.addEventListener("click", resetUserForm);
   refs.categoryReset.addEventListener("click", resetCategoryForm);
   refs.postReset.addEventListener("click", resetPostForm);
-
-  refs.userForm.addEventListener("submit", async function (event) {
-    event.preventDefault();
-
-    try {
-      const payload = {
-        name: refs.userName.value.trim(),
-        email: refs.userEmail.value.trim(),
-        accessLevel: Number(refs.userAccessLevel.value)
-      };
-      let endpoint = "/api/admin/users";
-      let method = "POST";
-
-      if (state.editingUserId) {
-        endpoint = "/api/admin/users/" + state.editingUserId;
-        method = "PUT";
-      }
-
-      const response = await api(endpoint, {
-        method,
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      await loadBootstrap();
-      resetUserForm();
-
-      if (method === "POST") {
-        handleInviteResult(response, "User saved.");
-      } else {
-        setStatus("User saved.");
-      }
-    } catch (error) {
-      setStatus(error.message, true);
-    }
-  });
-
-  refs.inviteForm.addEventListener("submit", async function (event) {
-    event.preventDefault();
-
-    try {
-      await api("/api/admin/invite/accept", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          token: state.inviteToken,
-          password: refs.invitePassword.value
-        })
-      });
-      closeInviteModal(true);
-      window.location.assign("/admin.html");
-    } catch (error) {
-      setStatus(error.message, true);
-    }
-  });
-
-  refs.inviteClose.forEach(function (button) {
-    button.addEventListener("click", function () {
-      closeInviteModal(true);
-    });
-  });
 
   refs.categoryForm.addEventListener("submit", async function (event) {
     event.preventDefault();
@@ -741,10 +691,44 @@ function bindEvents() {
     }
   });
 
+  refs.youtubeForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    try {
+      if (!state.categories.length) {
+        throw new Error("Create a category before syncing a playlist.");
+      }
+
+      const payload = await api("/api/admin/youtube/sync", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          playlistId: refs.youtubePlaylistId.value.trim(),
+          categoryId: Number(refs.youtubeCategory.value),
+          status: refs.youtubeStatus.value
+        })
+      });
+
+      await loadBootstrap();
+      setStatus(
+        "YouTube sync complete. " +
+        payload.summary.created + " created, " +
+        payload.summary.updated + " updated, " +
+        payload.summary.skipped + " skipped."
+      );
+    } catch (error) {
+      setStatus(error.message, true);
+    }
+  });
+
   refs.postForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
     try {
+      if (!state.categories.length) {
+        throw new Error("Create a category before saving articles.");
+      }
+
       const imageUrl = await uploadSelectedImage();
       const payload = {
         categoryId: Number(refs.categorySelect.value),
@@ -753,8 +737,10 @@ function bindEvents() {
         postDate: refs.postDate.value,
         imageAlt: refs.postImageAlt.value.trim(),
         imageUrl,
+        videoUrl: null,
+        likes: 0,
         contentMarkdown: refs.postContent.value,
-        status: canApprovePosts() ? refs.postStatus.value : "pending"
+        status: refs.postStatus.value
       };
       const endpoint = state.editingPostId ? "/api/admin/posts/" + state.editingPostId : "/api/admin/posts";
       const method = state.editingPostId ? "PUT" : "POST";
@@ -789,7 +775,10 @@ function bindEvents() {
   refs.postImageUrl.addEventListener("input", function () {
     if (refs.postImageUrl.value.trim()) {
       setImagePreview(refs.postImageUrl.value.trim(), refs.postImageAlt.value || refs.postTitle.value);
+      return;
     }
+
+    setImagePreview("", "");
   });
 
   bindAutoSlug(refs.categoryName, refs.categorySlug);
@@ -799,8 +788,8 @@ function bindEvents() {
 async function init() {
   bindEvents();
   renderMarkdownPreview();
+  resetCategoryForm();
   resetPostForm();
-  resetUserForm();
 
   try {
     await loadSession();
@@ -810,9 +799,14 @@ async function init() {
       return;
     }
 
-    await loadInvite();
+    await loadRecovery();
 
-    setStatus(state.hasUsers ? "Log in with your PeorCaso account." : "Create the first admin account.");
+    if (state.recoveryData) {
+      setStatus("Use the reset form to choose a new password.");
+      return;
+    }
+
+    setStatus(state.hasUsers ? "Log in with your admin account." : "Create the first admin account.");
   } catch (error) {
     setStatus(error.message, true);
   }

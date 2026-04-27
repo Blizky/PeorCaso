@@ -1,5 +1,5 @@
 import { handleError, HttpError, json } from "../../_lib/http.js";
-import { hashInviteToken, inviteActionLabel } from "../../_lib/invite.js";
+import { hashInviteToken } from "../../_lib/invite.js";
 import { getDb, getOpenInviteByTokenHash } from "../../_lib/store.js";
 
 export async function onRequestGet(context) {
@@ -7,23 +7,20 @@ export async function onRequestGet(context) {
     const token = String(new URL(context.request.url).searchParams.get("token") || "").trim();
 
     if (!token) {
-      throw new HttpError(400, "Invite token is required.");
+      throw new HttpError(400, "Token is required.");
     }
 
     const invite = await getOpenInviteByTokenHash(getDb(context.env), await hashInviteToken(token));
 
-    if (!invite) {
-      throw new HttpError(404, "This invite link is invalid or expired.");
+    if (!invite || !["activate_account", "reset_password"].includes(invite.purpose)) {
+      throw new HttpError(404, "This link is invalid or expired.");
     }
 
     return json({
-      invite: {
+      token: {
         email: invite.email,
         name: invite.name,
-        role: invite.role,
-        accessLevel: invite.accessLevel,
         purpose: invite.purpose,
-        purposeLabel: inviteActionLabel(invite.purpose),
         expiresAt: invite.expiresAt
       }
     });

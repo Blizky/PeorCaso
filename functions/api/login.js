@@ -1,7 +1,7 @@
-import { canAccessAdmin, createSessionHeaders } from "../../_lib/auth.js";
-import { handleError, HttpError, json, readJson } from "../../_lib/http.js";
-import { verifyPassword } from "../../_lib/password.js";
-import { getDb, getUserAuthByEmail, sanitizeUser } from "../../_lib/store.js";
+import { createSessionHeaders } from "../_lib/auth.js";
+import { handleError, HttpError, json, readJson } from "../_lib/http.js";
+import { verifyPassword } from "../_lib/password.js";
+import { getDb, getUserAuthByEmail, parseUserFlags, sanitizeUser } from "../_lib/store.js";
 
 export async function onRequestPost(context) {
   try {
@@ -12,7 +12,15 @@ export async function onRequestPost(context) {
     const user = await getUserAuthByEmail(db, email);
 
     if (!user || !user.isActive) {
-      throw new HttpError(401, "Invalid email or password.");
+      throw new HttpError(404, "Account not found.", {
+        code: "ACCOUNT_NOT_FOUND"
+      });
+    }
+
+    if (parseUserFlags(user.flag).includes("is_suspended")) {
+      throw new HttpError(403, "This account is suspended.", {
+        code: "ACCOUNT_SUSPENDED"
+      });
     }
 
     const isValid = await verifyPassword(password, user.password_hash, user.password_salt);
@@ -21,14 +29,8 @@ export async function onRequestPost(context) {
       throw new HttpError(401, "Invalid email or password.");
     }
 
-    const safeUser = sanitizeUser(user);
-
-    if (!canAccessAdmin(safeUser)) {
-      throw new HttpError(403, "This account cannot access the admin workspace.");
-    }
-
     return json({
-      user: safeUser
+      user: sanitizeUser(user)
     }, {
       headers: await createSessionHeaders(context.request, context.env, user)
     });

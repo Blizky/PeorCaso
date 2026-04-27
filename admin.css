@@ -36,6 +36,11 @@
   margin: 0;
 }
 
+.admin-header__copy {
+  display: grid;
+  gap: 1rem;
+}
+
 .admin-header p,
 .panel-heading p,
 .admin-status,
@@ -74,6 +79,10 @@
   gap: 1rem;
 }
 
+.panel-heading--tight {
+  align-items: center;
+}
+
 .auth-stack,
 .auth-form,
 .admin-form,
@@ -82,11 +91,21 @@
   gap: 1rem;
 }
 
+.admin-form--inline {
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
 .auth-actions,
 .form-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.auth-actions--end {
+  justify-content: flex-end;
 }
 
 .account-layout {

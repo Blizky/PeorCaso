@@ -1,1 +1,1 @@
-cd /Users/alex/Projects/GitHub/PeorCaso && python3 -m http.server 8000
+cd /Users/alex/Projects/GitHub/PeorCaso && npx wrangler pages dev .

@@ -1,4 +1,4 @@
-import { getCurrentUser } from "../../_lib/auth.js";
+import { canAccessAdmin, getCurrentUser } from "../../_lib/auth.js";
 import { handleError, json } from "../../_lib/http.js";
 import { countUsers, getDb } from "../../_lib/store.js";
 
@@ -10,10 +10,12 @@ export async function onRequestGet(context) {
       countUsers(db)
     ]);
 
+    const adminUser = canAccessAdmin(user) ? user : null;
+
     return json({
-      authenticated: Boolean(user),
+      authenticated: Boolean(adminUser),
       hasUsers: totalUsers > 0,
-      user
+      user: adminUser
     });
   } catch (error) {
     return handleError(error);

@@ -18,7 +18,7 @@ export async function onRequestPost(context) {
     const password = await hashPassword(input.password);
     const user = await createUser(db, {
       ...input,
-      accessLevel: 1
+      role: "owner"
     }, password.hash, password.salt);
 
     return json({

@@ -27,7 +27,7 @@ function buildGitHubPath(fileName) {
 
 export async function onRequestPost(context) {
   try {
-    await requireUser(context, 3);
+    await requireUser(context, "admin");
 
     const body = await readJson(context.request);
     const fileName = String(body.fileName || "").trim();

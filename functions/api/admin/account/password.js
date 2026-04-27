@@ -5,7 +5,7 @@ import { getDb, getUserAuthById, updateUserPassword } from "../../../_lib/store.
 
 export async function onRequestPut(context) {
   try {
-    const currentUser = await requireUser(context, 3);
+    const currentUser = await requireUser(context, "admin");
     const body = await readJson(context.request);
     const currentPassword = String(body.currentPassword || "");
     const nextPassword = String(body.nextPassword || "");

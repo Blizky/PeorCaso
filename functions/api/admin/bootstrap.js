@@ -1,22 +1,23 @@
-import { canManageUsers, requireUser } from "../../_lib/auth.js";
+import { requireUser } from "../../_lib/auth.js";
 import { handleError, json } from "../../_lib/http.js";
-import { getDb, listCategories, listPostsForUser, listUsers } from "../../_lib/store.js";
+import { getDb, listCategories, listPostsForUser } from "../../_lib/store.js";
 
 export async function onRequestGet(context) {
   try {
-    const currentUser = await requireUser(context, 3);
+    const currentUser = await requireUser(context, "admin");
     const db = getDb(context.env);
-    const [categories, posts, users] = await Promise.all([
+    const [categories, posts] = await Promise.all([
       listCategories(db),
-      listPostsForUser(db, currentUser),
-      canManageUsers(currentUser) ? listUsers(db) : Promise.resolve([])
+      listPostsForUser(db, currentUser)
     ]);
 
     return json({
       currentUser,
       categories,
       posts,
-      users
+      youtubeDefaults: {
+        playlistId: String(context.env.YOUTUBE_PLAYLIST_ID || "").trim()
+      }
     });
   } catch (error) {
     return handleError(error);
